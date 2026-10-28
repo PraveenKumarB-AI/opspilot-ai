@@ -21,7 +21,7 @@ app.mount("/api", api_app)  # /api/health, /api/requests, ... and the API docs a
 if DIST.exists():
     app.mount("/assets", StaticFiles(directory=DIST / "assets"), name="assets")
 
-    @app.get("/{path:path}", include_in_schema=False)
+    @app.api_route("/{path:path}", methods=["GET", "HEAD"], include_in_schema=False)  # HEAD: uptime checks
     def spa(path: str) -> FileResponse:
         """Serve real files (favicon etc.); send every other path to index.html so React Router
         can handle deep links like /queue/3 after a page refresh."""

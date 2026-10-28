@@ -15,6 +15,10 @@ The screenshot above shows that split. The question "Is the interface available 
 covered by the knowledge base, so confidence is low and the best match is weak. Instead of guessing,
 OpsPilot writes no draft and routes the ticket to priority review, listing why.
 
+**Live demo:** https://opspilot-ai-ugnm.onrender.com (free hosting: the first visit after a quiet
+spell takes about a minute to wake up, and data resets on restart. Drafts there are written by
+`openai/gpt-oss-120b` on Groq's free tier, capped at 200 calls a day.)
+
 All data in this repo is synthetic. "LedgerGrid" is a made-up asset-accounting product, and its 14
 help articles and 52 test tickets were written for this project. The numbers below describe the
 prototype, not business results.
@@ -22,7 +26,8 @@ prototype, not business results.
 ## How a ticket moves through the system
 
 1. **Classify.** Category, urgency and risk, with a confidence score. Without an API key a keyword
-   classifier runs. With one, Claude classifies, but it can only raise the risk level, never lower it.
+   classifier runs. With one, an LLM classifies (Claude, or any OpenAI-compatible API such as Groq),
+   but it can only raise the risk level, never lower it.
 2. **Retrieve.** Hybrid search over the knowledge base: TF-IDF vectors in a FAISS index plus BM25,
    merged with reciprocal rank fusion. BM25 catches exact terms like error codes; the vector side
    catches paraphrases.
@@ -95,8 +100,13 @@ cd frontend && npm install && npm run dev
 Open http://localhost:5173 and load one of the sample tickets on the New request page. The API docs
 are at http://localhost:8000/docs.
 
-It runs fully offline. To use Claude for classification and drafting, copy `.env.example` to `.env`
-and set `ANTHROPIC_API_KEY`. The `.env` file is git-ignored.
+It runs fully offline. To use an LLM for classification and drafting, copy `.env.example` to `.env`
+and either set `ANTHROPIC_API_KEY` (Claude) or set `OPSPILOT_LLM_PROVIDER=openai` and
+`OPSPILOT_LLM_API_KEY` (Groq's free tier by default). The `.env` file is git-ignored.
+
+To run the production build the way it's deployed (one service, UI and API together):
+`cd frontend && npm run build && cd .. && uvicorn api.serve:app`, then open http://localhost:8000.
+The `Dockerfile` does the same; it deploys as-is to Render's free tier.
 
 ## Project layout
 

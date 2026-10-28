@@ -24,3 +24,8 @@ def test_deep_link_returns_index_html(client):
 def test_path_traversal_is_blocked(client):
     r = client.get("/..%2F..%2Fapi%2Fmain.py")
     assert "FastAPI" not in r.text
+
+
+@pytest.mark.skipif(not serve.DIST.exists(), reason="run npm run build first")
+def test_head_request_on_home_page(client):
+    assert client.head("/").status_code == 200  # Render and uptime monitors probe with HEAD
