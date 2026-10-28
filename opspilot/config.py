@@ -31,7 +31,9 @@ CONFIDENCE_THRESHOLD = 0.85
 MIN_EVIDENCE_SCORE = {"sentence-transformers": 0.35, "tfidf": 0.20}
 TOP_K = 4
 
-HIGH_RISK_CATEGORIES = {"billing", "data_privacy", "security"}
+# Topics that are always high risk. Billing and privacy are high risk only when the request asks for
+# something risky (refund, deletion, ...), so routine questions like "update billing contact" are not.
+HIGH_RISK_CATEGORIES = {"security"}
 
 
 def llm_enabled() -> bool:
