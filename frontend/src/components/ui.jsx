@@ -1,11 +1,28 @@
 // Small shared building blocks so every page looks consistent.
 
-export function Card({ title, action, children, className = '' }) {
+import { useRef } from 'react'
+
+// Glass card that leans slightly towards the pointer (max 3 degrees) for a 3D feel.
+export function Card({ title, action, children, className = '', tilt = true }) {
+  const ref = useRef(null)
+  const move = (e) => {
+    if (!tilt || !ref.current) return
+    const r = ref.current.getBoundingClientRect()
+    const x = (e.clientX - r.left) / r.width - 0.5
+    const y = (e.clientY - r.top) / r.height - 0.5
+    ref.current.style.setProperty('--ry', `${(x * 3).toFixed(2)}deg`)
+    ref.current.style.setProperty('--rx', `${(-y * 3).toFixed(2)}deg`)
+  }
+  const leave = () => {
+    ref.current?.style.setProperty('--rx', '0deg')
+    ref.current?.style.setProperty('--ry', '0deg')
+  }
   return (
-    <section className={`rounded-xl border border-slate-200 bg-white shadow-sm ${className}`}>
+    <section ref={ref} onMouseMove={move} onMouseLeave={leave}
+      className={`glass rounded-2xl ${tilt ? 'tilt' : ''} ${className}`}>
       {title && (
-        <header className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
-          <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
+        <header className="flex items-center justify-between border-b border-white/70 px-5 py-3">
+          <h2 className="text-sm font-semibold tracking-tight text-slate-800">{title}</h2>
           {action}
         </header>
       )}
@@ -15,16 +32,16 @@ export function Card({ title, action, children, className = '' }) {
 }
 
 const TONES = {
-  gray: 'bg-slate-100 text-slate-700 ring-slate-200',
-  blue: 'bg-indigo-50 text-indigo-700 ring-indigo-200',
-  green: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-  amber: 'bg-amber-50 text-amber-800 ring-amber-200',
-  red: 'bg-rose-50 text-rose-700 ring-rose-200',
+  gray: 'bg-gradient-to-b from-white to-slate-100 text-slate-700 ring-slate-200',
+  blue: 'bg-gradient-to-b from-white to-indigo-100 text-indigo-700 ring-indigo-200',
+  green: 'bg-gradient-to-b from-white to-emerald-100 text-emerald-700 ring-emerald-200',
+  amber: 'bg-gradient-to-b from-white to-amber-100 text-amber-800 ring-amber-300',
+  red: 'bg-gradient-to-b from-white to-rose-100 text-rose-700 ring-rose-200',
 }
 
 export function Badge({ tone = 'gray', children }) {
   return (
-    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ring-inset ${TONES[tone]}`}>
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium shadow-sm ring-1 ring-inset ${TONES[tone]}`}>
       {children}
     </span>
   )
@@ -55,14 +72,14 @@ export function StatusBadge({ status }) {
 
 export function Button({ variant = 'primary', className = '', ...props }) {
   const styles = {
-    primary: 'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300',
-    secondary: 'bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50',
-    danger: 'bg-white text-rose-700 ring-1 ring-inset ring-rose-300 hover:bg-rose-50',
-    warning: 'bg-white text-amber-800 ring-1 ring-inset ring-amber-300 hover:bg-amber-50',
+    primary: 'btn-shine text-white disabled:opacity-50',
+    secondary: 'bg-white/80 text-slate-700 shadow-sm ring-1 ring-inset ring-slate-300 hover:bg-white hover:shadow',
+    danger: 'bg-white/80 text-rose-700 shadow-sm ring-1 ring-inset ring-rose-300 hover:bg-rose-50',
+    warning: 'bg-white/80 text-amber-800 shadow-sm ring-1 ring-inset ring-amber-300 hover:bg-amber-50',
   }
   return (
     <button
-      className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed ${styles[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed ${styles[variant]} ${className}`}
       {...props}
     />
   )
@@ -79,7 +96,7 @@ export function Field({ label, hint, children }) {
 }
 
 export const inputClass =
-  'block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:outline-none'
+  'block w-full rounded-xl border border-white/80 bg-white/75 px-3 py-2 text-sm shadow-[inset_0_1px_2px_rgb(15_23_42/0.08)] placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-200/60 focus:outline-none'
 
 export function ErrorBox({ error }) {
   if (!error) return null
@@ -87,7 +104,7 @@ export function ErrorBox({ error }) {
 }
 
 export function Empty({ children }) {
-  return <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">{children}</div>
+  return <div className="rounded-xl border border-dashed border-indigo-200 bg-white/40 p-8 text-center text-sm text-slate-500">{children}</div>
 }
 
 // Shows a draft with citation tags like [KB-07 §2] highlighted.
@@ -97,7 +114,7 @@ export function DraftText({ text }) {
     <p className="whitespace-pre-wrap text-sm leading-6 text-slate-800">
       {parts.map((p, i) =>
         /^\[KB-/.test(p) ? (
-          <span key={i} className="mx-0.5 rounded bg-indigo-50 px-1 font-mono text-xs text-indigo-700">{p.slice(1, -1)}</span>
+          <span key={i} className="mx-0.5 rounded-md bg-gradient-to-b from-indigo-50 to-indigo-100 px-1 font-mono text-xs text-indigo-700 ring-1 ring-indigo-200">{p.slice(1, -1)}</span>
         ) : (
           <span key={i}>{p}</span>
         ),
@@ -111,7 +128,7 @@ export function Evidence({ items }) {
   return (
     <ul className="space-y-3">
       {items.map((e) => (
-        <li key={e.chunk_id} className="rounded-lg border border-slate-200 p-3">
+        <li key={e.chunk_id} className="rounded-xl border border-white/80 bg-white/60 p-3 shadow-sm">
           <div className="mb-1 flex items-center justify-between gap-2">
             <span className="font-mono text-xs font-semibold text-indigo-700">{e.chunk_id}</span>
             <span className="text-xs text-slate-500">match {e.score.toFixed(2)}</span>
@@ -126,9 +143,9 @@ export function Evidence({ items }) {
 
 export function Reasons({ reasons }) {
   if (!reasons?.length)
-    return <div className="rounded-lg bg-indigo-50 px-4 py-3 text-sm text-indigo-800">All routing rules clear: standard review.</div>
+    return <div className="rounded-xl bg-gradient-to-r from-indigo-50 to-sky-50 px-4 py-3 text-sm text-indigo-800 ring-1 ring-indigo-100">All routing rules clear: standard review.</div>
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+    <div className="rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 shadow-sm">
       <div className="mb-1 text-sm font-semibold text-amber-900">Why this needs priority review</div>
       <ul className="list-disc space-y-0.5 pl-5 text-sm text-amber-900">
         {reasons.map((r) => <li key={r}>{r}</li>)}
