@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import Journey from '../components/Journey'
 import PageHeader from '../components/PageHeader'
-import { AutoSendBox, Badge, Button, Card, DraftText, EmailPreview, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, StatusBadge, inputClass } from '../components/ui'
+import { AutoSendBox, Badge, Button, Card, DraftBadge, DraftText, EmailPreview, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, StatusBadge, inputClass } from '../components/ui'
 
 export default function Intake() {
   const [samples, setSamples] = useState([])
@@ -75,8 +75,7 @@ export default function Intake() {
                   <Button variant="secondary" onClick={() => navigate(`/queue/${result.id}`)}>{result.status === 'sent' ? 'View in queue →' : 'Open in review queue →'}</Button>
                 </div>
               </Card>
-              <Card title="Draft reply" action={result.draft.mode !== 'none' && (
-                <Badge tone={result.draft.citation_ok ? 'green' : 'red'}>{result.draft.citation_ok ? 'Citations verified' : 'Citation check failed'}</Badge>)}>
+              <Card title={result.draft.mode === 'holding' ? 'Draft reply (holding reply: a person handles the answer)' : 'Draft reply'} action={<DraftBadge draft={result.draft} />}>
                 {result.draft.mode === 'none'
                   ? <Empty>{result.draft.draft_text}</Empty>
                   : <DraftText text={result.draft.draft_text} />}

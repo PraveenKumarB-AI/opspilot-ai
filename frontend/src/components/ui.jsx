@@ -91,6 +91,13 @@ export function AutoSendBox({ audit }) {
   return null
 }
 
+// The draft's status badge: verified citations, failed citations, or a holding reply with no facts to cite.
+export function DraftBadge({ draft }) {
+  if (!draft || draft.mode === 'none') return null
+  if (draft.mode === 'holding') return <Badge tone="gray">Holding reply: no product facts</Badge>
+  return <Badge tone={draft.citation_ok ? 'green' : 'red'}>{draft.citation_ok ? 'Citations verified' : 'Check citations'}</Badge>
+}
+
 // The customer-facing email, shown the way it arrives in an inbox: no citation tags, one greeting,
 // the help articles used, and the support signature.
 export function EmailPreview({ email, to }) {

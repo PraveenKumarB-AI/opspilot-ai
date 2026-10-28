@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api'
 import Journey from '../components/Journey'
 import PageHeader from '../components/PageHeader'
-import { AutoSendBox, Badge, Button, Card, EmailPreview, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, StatusBadge, inputClass } from '../components/ui'
+import { AutoSendBox, Badge, Button, Card, DraftBadge, EmailPreview, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, StatusBadge, inputClass } from '../components/ui'
 
 function readName() { try { return localStorage.getItem('reviewer') || '' } catch { return '' } }
 function saveName(v) { try { localStorage.setItem('reviewer', v) } catch { /* storage unavailable */ } }
@@ -69,7 +69,8 @@ export default function ReviewQueue() {
   }
 
   const done = item?.review?.action
-  const needsConfirm = item?.draft?.mode !== 'none' && item?.draft?.citation_ok === false
+  // Only generated answers make factual claims to check; holding replies have none.
+  const needsConfirm = ['llm', 'fallback'].includes(item?.draft?.mode) && item?.draft?.citation_ok === false
   return (
     <>
       <PageHeader title="Review queue" subtitle="Cases that need a person, priority first with the reason shown. Safe, routine replies are sent automatically: see Auto-sent." />
@@ -114,8 +115,8 @@ export default function ReviewQueue() {
                 <AutoSendBox audit={item.audit} />
               </Card>
 
-              <Card tilt={false} title={done === 'auto_send' ? 'Reply that was sent (internal copy, with source tags)' : item.draft.mode === 'none' ? 'Reply (no AI draft: write or escalate)' : `Draft reply (${item.draft.mode === 'llm' ? 'written by the LLM' : 'fallback: copied from sources'}): edit before approving if needed`}
-                action={item.draft.mode !== 'none' && <Badge tone={item.draft.citation_ok ? 'green' : 'red'}>{item.draft.citation_ok ? 'Citations verified' : 'Check citations'}</Badge>}>
+              <Card tilt={false} title={done === 'auto_send' ? 'Reply that was sent (internal copy, with source tags)' : item.draft.mode === 'none' ? 'Reply (no AI draft: write or escalate)' : item.draft.mode === 'holding' ? 'Holding reply: approve to acknowledge the customer, or escalate with a reason' : `Draft reply (${item.draft.mode === 'llm' ? 'written by the LLM' : 'fallback: copied from sources'}): edit before approving if needed`}
+                action={<DraftBadge draft={item.draft} />}>
                 {needsConfirm && item.draft.issues?.length > 0 && (
                   <div role="alert" className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
                     <div className="font-semibold">Citation check failed</div>

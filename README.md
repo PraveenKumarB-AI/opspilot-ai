@@ -13,7 +13,8 @@ to a person.
 
 The screenshot above shows that split. The question "Is the interface available in French?" isn't
 covered by the knowledge base, so confidence is low and the best match is weak. Instead of guessing,
-OpsPilot writes no draft and routes the ticket to priority review, listing why.
+OpsPilot routes the ticket to priority review, listing why, and drafts a professional holding reply
+that acknowledges the customer without stating any product facts.
 
 **Live demo:** https://opspilot-ai-ugnm.onrender.com (free hosting: the first visit after a quiet
 spell takes about a minute to wake up, and data resets on restart. Drafts there are written by

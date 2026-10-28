@@ -68,8 +68,16 @@ def test_pipeline_high_risk_waits_for_a_person(conn, monkeypatch):
     _fake_llm(monkeypatch, category="reporting", risk="high")
     r = process_request(conn, "Export", "How do I export a report to CSV?")
     assert r["status"] == "pending" and r["review"]["action"] is None
+    assert r["draft"]["mode"] == "holding"          # high risk: acknowledge, never answer
+    assert "auto_sent" not in [a["event"] for a in r["audit"]]
+
+
+def test_llm_answer_that_fails_a_check_says_why(conn, monkeypatch):
+    _fake_llm(monkeypatch, confidence=0.86)       # passes routing (>= 0.85) but not auto-send (< 0.90)
+    r = process_request(conn, "Export", "How do I export a report to CSV?")
+    assert r["status"] == "pending"
     failed = [a for a in r["audit"] if a["event"] == "needs_person"][0]["details"]["failed"]
-    assert "Low risk" in failed
+    assert failed == ["Confidence at least 0.9"]
 
 
 def test_metrics_count_auto_sent_separately(conn, monkeypatch):

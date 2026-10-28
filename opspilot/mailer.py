@@ -59,7 +59,7 @@ def cited_articles(draft_text: str, evidence: list[dict]) -> list[str]:
 
 
 def compose_email(request_id: int, customer: str, subject: str, reply_text: str,
-                  evidence: list[dict]) -> dict:
+                  evidence: list[dict], holding: bool = False) -> dict:
     """Build the customer email from the reviewed (tagged) reply text."""
     body = body_only(strip_tags(reply_text))
     articles = cited_articles(reply_text, evidence)
@@ -70,7 +70,10 @@ def compose_email(request_id: int, customer: str, subject: str, reply_text: str,
     ]
     if articles:
         parts.append("For more detail, see these help articles:\n" + "\n".join(f"- {a}" for a in articles))
-    parts.append("If this doesn't resolve the issue, simply reply to this email and a member of our "
-                 "team will follow up.")
+    if holding:  # the answer is still to come, so invite more detail instead
+        parts.append("If you have anything to add in the meantime, simply reply to this email.")
+    else:
+        parts.append("If this doesn't resolve the issue, simply reply to this email and a member of our "
+                     "team will follow up.")
     parts.append(f"{SIGNATURE}\nTicket #{request_id}")
     return {"subject": f"Re: {subject.strip()} [Ticket #{request_id}]", "body": "\n\n".join(parts)}

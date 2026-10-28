@@ -29,6 +29,8 @@ export function journeyOf(r) {
       tone: !top || weak ? 'warn' : 'ok' },
     d.mode === 'none' || !d.mode
       ? { title: 'Not written', detail: 'Unsafe to guess', tone: 'stop' }
+      : d.mode === 'holding'
+      ? { title: 'Holding reply', detail: 'No facts, so no guessing', tone: 'warn' }
       : { title: d.mode === 'llm' ? 'Written by the LLM' : 'Copied from sources',
           detail: d.citation_ok ? 'Citations verified' : 'Citation check failed', tone: d.citation_ok ? 'ok' : 'stop' },
     reasons.length

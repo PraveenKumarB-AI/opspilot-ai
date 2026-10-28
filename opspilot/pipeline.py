@@ -9,6 +9,7 @@ from opspilot.autosend import auto_send_checks, should_auto_send
 from opspilot.classifier import classify
 from opspilot.drafter import NO_DRAFT, draft_response
 from opspilot.guardrails import check_draft, detect_injection
+from opspilot.holding import GENERIC, holding_reply
 from opspilot.mailer import compose_email
 from opspilot.retriever import get_retriever
 from opspilot.router import route
@@ -45,14 +46,18 @@ def _run_steps(conn: sqlite3.Connection, request_id: int, subject: str, body: st
 
     injection = detect_injection(text)
     evidence = [h for h in hits if h["score"] >= retriever.min_evidence]
-    if injection or not evidence or classification["category"] == "general":
-        draft = {"text": NO_DRAFT, "mode": "none"}
-        check = None
-    else:
+    # High-risk, injected, vague or uncovered requests get a holding reply (no product facts),
+    # never a generated answer. Everything else gets a grounded, cited draft.
+    no_answer = injection or not evidence or classification["category"] == "general"
+    draft = {"text": NO_DRAFT, "mode": "none"}
+    if not no_answer and classification["risk"] != "high":
         draft = draft_response(subject, body, evidence)
-        check = check_draft(draft["text"], hits) if draft["mode"] != "none" else None
-    draft_record = {**draft, **(check or {"citations": [], "citation_ok": False,
-                                          "issues": ["No draft"]})}
+    check = check_draft(draft["text"], hits) if draft["mode"] in ("llm", "fallback") else None
+    if draft["mode"] == "none":
+        draft = holding_reply(classification, text, injection)
+    draft_record = {"text": draft["text"], "mode": draft["mode"],
+                    **(check or {"citations": [], "citation_ok": False,
+                                 "issues": [f"Holding reply ({draft.get('kind', 'generic')}): no product facts"]})}
     db.save_draft(conn, request_id, draft_record)
     db.log(conn, request_id, "drafted", {"mode": draft["mode"],
                                          "citations": draft_record["citations"],
@@ -67,7 +72,7 @@ def _run_steps(conn: sqlite3.Connection, request_id: int, subject: str, body: st
         db.save_review(conn, request_id, "auto_send", AUTO_REVIEWER, draft_record["text"],
                        "All auto-send checks passed", None)
         db.log(conn, request_id, "auto_sent", {"checks": [name for name, _ in checks]})
-    elif config.AUTO_SEND and draft_record["mode"] == "llm":  # say why an LLM reply wasn't auto-sent
+    elif config.AUTO_SEND and draft_record["mode"] == "llm":  # say why an LLM answer wasn't auto-sent
         db.log(conn, request_id, "needs_person",
                {"failed": [name for name, ok in checks if not ok]})
 
@@ -80,7 +85,7 @@ def _route_after_error(conn: sqlite3.Connection, request_id: int, exc: Exception
     if not db.rows(conn, "SELECT 1 FROM classifications WHERE request_id=?", (request_id,)):
         db.save_classification(conn, request_id, {"category": "general", "urgency": "medium",
                                                   "risk": "high", "confidence": 0.0, "mode": "error"})
-    db.save_draft(conn, request_id, {"text": NO_DRAFT, "mode": "none", "citations": [],
+    db.save_draft(conn, request_id, {"text": GENERIC, "mode": "holding", "citations": [],
                                      "citation_ok": False, "issues": [reason]})
     db.save_routing(conn, request_id, "priority", [reason])
     db.log(conn, request_id, "routed", {"queue": "priority", "reasons": [reason]})
@@ -130,8 +135,8 @@ def get_request(conn: sqlite3.Connection, request_id: int) -> dict:
         r["routing_reasons"] = json.loads(r["routing_reasons"] or "[]")
     out["review"] = r
     reply = (r or {}).get("final_text") or (d["draft_text"] if d and d["mode"] != "none" else "")
-    out["email"] = (compose_email(request_id, out["customer"], out["subject"], reply, out["evidence"])
-                    if reply else None)
+    out["email"] = (compose_email(request_id, out["customer"], out["subject"], reply, out["evidence"],
+                                  holding=bool(d and d["mode"] == "holding")) if reply else None)
     out["audit"] = db.rows(conn, "SELECT * FROM audit_log WHERE request_id=? ORDER BY id",
                            (request_id,))
     for a in out["audit"]:
