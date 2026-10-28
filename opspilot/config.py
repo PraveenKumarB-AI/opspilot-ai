@@ -13,11 +13,18 @@ KNOWLEDGE_DIR = ROOT / "data" / "knowledge"
 REQUESTS_CSV = ROOT / "data" / "requests" / "test_requests.csv"
 DB_PATH = Path(os.getenv("OPSPILOT_DB", ROOT / "opspilot.db"))
 
-# "auto" uses the Claude API when a key is set, otherwise the deterministic fallback.
+# "auto" uses an LLM when a key is set, otherwise the deterministic fallback.
 # "fallback" always uses the fallback (used by tests so they are free and repeatable).
 MODE = os.getenv("OPSPILOT_MODE", "auto").lower()
+
+# LLM provider: "anthropic" (Claude API) or "openai" (any OpenAI-compatible endpoint, e.g. Groq's
+# free tier). The rest of the app does not care which one answers: both go through opspilot/llm.py.
+LLM_PROVIDER = os.getenv("OPSPILOT_LLM_PROVIDER", "anthropic").lower()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
-LLM_MODEL = os.getenv("OPSPILOT_LLM_MODEL", "claude-sonnet-5-5")
+LLM_API_KEY = os.getenv("OPSPILOT_LLM_API_KEY", "").strip()           # for provider "openai"
+LLM_BASE_URL = os.getenv("OPSPILOT_LLM_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
+LLM_MODEL = os.getenv("OPSPILOT_LLM_MODEL",
+                      "claude-sonnet-5-5" if LLM_PROVIDER == "anthropic" else "openai/gpt-oss-120b")
 
 # Embeddings: "tfidf" (default, tested, offline) or "auto" / "sentence-transformers" (optional upgrade:
 # pip install sentence-transformers, then re-tune MIN_EVIDENCE_SCORE with the eval).
@@ -36,6 +43,22 @@ TOP_K = 4
 HIGH_RISK_CATEGORIES = {"security"}
 
 
+def llm_key() -> str:
+    """The API key for the selected provider ("" when none is set)."""
+    return ANTHROPIC_API_KEY if LLM_PROVIDER == "anthropic" else LLM_API_KEY
+
+
 def llm_enabled() -> bool:
-    """True when drafting and classification should call the Claude API."""
-    return MODE != "fallback" and bool(ANTHROPIC_API_KEY)
+    """True when drafting and classification should call an LLM."""
+    return MODE != "fallback" and LLM_PROVIDER in {"anthropic", "openai"} and bool(llm_key())
+
+
+def llm_label() -> str:
+    """Who writes the drafts, for the UI: e.g. "Claude (claude-sonnet-5-5)" or "openai/gpt-oss-120b via Groq"."""
+    if not llm_enabled():
+        return "Fallback mode (no API key)"
+    if LLM_PROVIDER == "anthropic":
+        return f"Claude ({LLM_MODEL})"
+    host = LLM_BASE_URL.split("//")[-1].split("/")[0]
+    name = "Groq" if "groq" in host else host
+    return f"{LLM_MODEL} via {name}"

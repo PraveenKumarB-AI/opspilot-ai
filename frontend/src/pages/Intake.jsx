@@ -69,7 +69,7 @@ export default function Intake() {
                   <Badge>Urgency: {c.urgency}</Badge>
                   <RiskBadge risk={c.risk} />
                   <ConfidenceBadge classification={c} />
-                  <Badge>{c.mode === 'llm' ? 'Classified by Claude' : 'Fallback classifier'}</Badge>
+                  <Badge>{c.mode === 'llm' ? 'Classified by the LLM' : 'Fallback classifier'}</Badge>
                 </div>
                 <Reasons reasons={result.review.routing_reasons} />
                 <div className="mt-4 flex justify-end">

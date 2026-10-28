@@ -45,7 +45,7 @@ export default function App() {
           {health?.status === 'ok' ? (
             <>
               <div className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_2px_rgb(52_211_153/0.7)]" />API: connected</div>
-              <div>Drafting: {health.llm ? 'Claude API' : 'Fallback mode (no API key)'}</div>
+              <div>Drafting: {health.llm_label || (health.llm ? 'LLM' : 'Fallback mode (no API key)')}</div>
               <div>Search: {health.embeddings}</div>
             </>
           ) : health ? <div className="flex items-center gap-1.5 text-rose-300"><span className="h-2 w-2 rounded-full bg-rose-400 shadow-[0_0_8px_2px_rgb(251_113_133/0.7)]" />API not reachable. Is uvicorn running?</div> : <div>Checking…</div>}

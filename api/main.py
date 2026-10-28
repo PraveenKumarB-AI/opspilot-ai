@@ -53,7 +53,7 @@ class Timing(BaseModel):
 @app.get("/health")
 def health() -> dict:
     """Check the API is up and report which modes are active."""
-    return {"status": "ok", "llm": config.llm_enabled(),
+    return {"status": "ok", "llm": config.llm_enabled(), "llm_label": config.llm_label(),
             "embeddings": get_retriever().embedder.backend}
 
 

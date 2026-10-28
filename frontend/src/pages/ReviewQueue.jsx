@@ -115,7 +115,7 @@ export default function ReviewQueue() {
                 <Reasons reasons={item.review.routing_reasons} />
               </Card>
 
-              <Card tilt={false} title={item.draft.mode === 'none' ? 'Reply (no AI draft: write or escalate)' : `Draft reply (${item.draft.mode === 'llm' ? 'written by Claude' : 'fallback: copied from sources'}): edit before approving if needed`}
+              <Card tilt={false} title={item.draft.mode === 'none' ? 'Reply (no AI draft: write or escalate)' : `Draft reply (${item.draft.mode === 'llm' ? 'written by the LLM' : 'fallback: copied from sources'}): edit before approving if needed`}
                 action={item.draft.mode !== 'none' && <Badge tone={item.draft.citation_ok ? 'green' : 'red'}>{item.draft.citation_ok ? 'Citations verified' : 'Check citations'}</Badge>}>
                 {needsConfirm && item.draft.issues?.length > 0 && (
                   <div role="alert" className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
