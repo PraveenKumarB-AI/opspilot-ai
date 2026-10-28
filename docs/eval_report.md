@@ -1,6 +1,6 @@
 # OpsPilot AI evaluation report
 
-Run `c9803222` on 2026-10-28 03:12 UTC. Embeddings: tfidf. LLM: off (fallback mode).
+Run `301de564` on 2026-10-28 03:59 UTC. Embeddings: tfidf. LLM: off (fallback mode).
 
 > **All requests and documents are synthetic.** These numbers show how the prototype behaves on invented test data. They are not PowerPlan results or real business outcomes. The keyword fallback was written alongside this test set, so expect lower scores on real tickets.
 
