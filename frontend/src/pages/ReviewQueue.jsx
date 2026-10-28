@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api'
 import PageHeader from '../components/PageHeader'
-import { Badge, Button, Card, ConfidenceBadge, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, RiskBadge, StatusBadge, inputClass } from '../components/ui'
+import { AutoSendBox, Badge, Button, Card, ConfidenceBadge, EmailPreview, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, RiskBadge, StatusBadge, inputClass } from '../components/ui'
 
 function readName() { try { return localStorage.getItem('reviewer') || '' } catch { return '' } }
 function saveName(v) { try { localStorage.setItem('reviewer', v) } catch { /* storage unavailable */ } }
@@ -22,7 +22,8 @@ export default function ReviewQueue() {
   const openedAt = useRef(Date.now())
 
   const loadList = useCallback(() => {
-    api.listRequests(filter === 'pending' ? { status: 'pending' } : {}).then(setItems).catch((e) => setError(e.message))
+    const params = { pending: { status: 'pending' }, sent: { status: 'sent' }, all: {} }[filter]
+    api.listRequests(params).then(setItems).catch((e) => setError(e.message))
   }, [filter])
   useEffect(loadList, [loadList])
 
@@ -70,12 +71,12 @@ export default function ReviewQueue() {
   const needsConfirm = item?.draft?.mode !== 'none' && item?.draft?.citation_ok === false
   return (
     <>
-      <PageHeader title="Review queue" subtitle="Every reply is approved by a person. Priority cases are listed first, with the reason shown." />
+      <PageHeader title="Review queue" subtitle="Cases that need a person, priority first with the reason shown. Safe, routine replies are sent automatically: see Auto-sent." />
       <div className="grid gap-6 lg:grid-cols-3">
         <Card title="Requests" tilt={false} action={
           <div className="flex rounded-lg bg-slate-100 p-0.5 text-xs">
-            {['pending', 'all'].map((f) => (
-              <button key={f} onClick={() => setFilter(f)} className={`rounded-md px-3 py-1 capitalize ${filter === f ? 'bg-white shadow-sm' : 'text-slate-600'}`}>{f}</button>
+            {[['pending', 'Pending'], ['sent', 'Auto-sent'], ['all', 'All']].map(([f, label]) => (
+              <button key={f} onClick={() => setFilter(f)} className={`rounded-md px-3 py-1 ${filter === f ? 'bg-white shadow-sm' : 'text-slate-600'}`}>{label}</button>
             ))}
           </div>}>
           {items.length === 0 ? <Empty>No requests here yet. Submit one from “New request”.</Empty> : (
@@ -91,7 +92,7 @@ export default function ReviewQueue() {
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       <Badge>{r.category}</Badge>
                       {r.risk === 'high' && <Badge tone="red">High risk</Badge>}
-                      {filter === 'all' && <StatusBadge status={r.status} />}
+                      {filter !== 'pending' && <StatusBadge status={r.status} />}
                     </div>
                   </button>
                 </li>
@@ -113,9 +114,10 @@ export default function ReviewQueue() {
                   <ConfidenceBadge classification={item.classification} />
                 </div>
                 <Reasons reasons={item.review.routing_reasons} />
+                <AutoSendBox audit={item.audit} />
               </Card>
 
-              <Card tilt={false} title={item.draft.mode === 'none' ? 'Reply (no AI draft: write or escalate)' : `Draft reply (${item.draft.mode === 'llm' ? 'written by the LLM' : 'fallback: copied from sources'}): edit before approving if needed`}
+              <Card tilt={false} title={done === 'auto_send' ? 'Reply that was sent (internal copy, with source tags)' : item.draft.mode === 'none' ? 'Reply (no AI draft: write or escalate)' : `Draft reply (${item.draft.mode === 'llm' ? 'written by the LLM' : 'fallback: copied from sources'}): edit before approving if needed`}
                 action={item.draft.mode !== 'none' && <Badge tone={item.draft.citation_ok ? 'green' : 'red'}>{item.draft.citation_ok ? 'Citations verified' : 'Check citations'}</Badge>}>
                 {needsConfirm && item.draft.issues?.length > 0 && (
                   <div role="alert" className="mb-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
@@ -128,8 +130,9 @@ export default function ReviewQueue() {
                   onChange={(e) => setText(e.target.value)} placeholder="No safe draft. Write a reply, or escalate to a specialist." />
                 {done ? (
                   <div className="mt-4 rounded-lg bg-white/60 p-3 text-sm text-slate-700">
-                    <b className="capitalize">{done}</b> by {item.review.reviewer} in {item.review.seconds_spent ?? '?'}s
-                    {item.review.reason && <> · Reason: {item.review.reason}</>}
+                    {done === 'auto_send' ? <><b>Sent automatically</b> by {item.review.reviewer}: no person needed</> : <>
+                      <b className="capitalize">{done}</b> by {item.review.reviewer} in {item.review.seconds_spent ?? '?'}s
+                      {item.review.reason && <> · Reason: {item.review.reason}</>}</>}
                   </div>
                 ) : (
                   <div className="mt-4 space-y-4">
@@ -152,10 +155,15 @@ export default function ReviewQueue() {
                       <Button variant="warning" disabled={busy} onClick={() => decide('escalate')}>Escalate to specialist</Button>
                       <Button variant="danger" disabled={busy} onClick={() => decide('reject')}>Reject draft</Button>
                     </div>
-                    <p className="text-xs text-slate-500">Prototype: “send” records the decision only. No email leaves the app.</p>
+                    <p className="text-xs text-slate-500">Prototype: no real email leaves the app. Below is what the customer would receive.</p>
                   </div>
                 )}
               </Card>
+              {item.email && (
+                <Card title={done === 'auto_send' ? 'Email sent to the customer' : done ? 'Email the customer received' : 'Email preview (from the draft; your edits apply when you approve)'}>
+                  <EmailPreview email={item.email} />
+                </Card>
+              )}
             </>
           )}
         </div>

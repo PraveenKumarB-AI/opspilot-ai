@@ -54,7 +54,7 @@ BEGIN SELECT RAISE(ABORT, 'audit_log is append-only'); END;
 """
 
 REVIEW_STATUS = {"approve": "approved", "edit": "approved", "reject": "rejected",
-                 "escalate": "escalated"}
+                 "escalate": "escalated", "auto_send": "sent"}
 
 
 def now() -> str:

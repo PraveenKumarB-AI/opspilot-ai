@@ -1,7 +1,8 @@
 # Using OpsPilot AI
 
 OpsPilot reads a customer request, finds the help articles that answer it, and drafts a reply with
-sources. You approve every reply. Nothing goes out without you.
+sources. Routine, low-risk questions with a strong, verified answer are emailed automatically. You
+handle everything else, and you can see every automatic reply under **Review queue → Auto-sent**.
 
 ![New request screen](images/new-request.png)
 

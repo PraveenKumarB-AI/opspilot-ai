@@ -5,11 +5,16 @@ import json
 import sqlite3
 
 from opspilot import config, db
+from opspilot.autosend import auto_send_checks, should_auto_send
 from opspilot.classifier import classify
 from opspilot.drafter import NO_DRAFT, draft_response
 from opspilot.guardrails import check_draft, detect_injection
+from opspilot.mailer import compose_email
 from opspilot.retriever import get_retriever
 from opspilot.router import route
+
+
+AUTO_REVIEWER = "OpsPilot (automatic)"
 
 
 def process_request(conn: sqlite3.Connection, subject: str, body: str,
@@ -56,6 +61,15 @@ def _run_steps(conn: sqlite3.Connection, request_id: int, subject: str, body: st
     queue, reasons = route(classification, hits, retriever.min_evidence, check, injection, text)
     db.save_routing(conn, request_id, queue, reasons)
     db.log(conn, request_id, "routed", {"queue": queue, "reasons": reasons})
+
+    checks = auto_send_checks(classification, hits, queue, draft_record, injection)
+    if should_auto_send(checks):
+        db.save_review(conn, request_id, "auto_send", AUTO_REVIEWER, draft_record["text"],
+                       "All auto-send checks passed", None)
+        db.log(conn, request_id, "auto_sent", {"checks": [name for name, _ in checks]})
+    elif config.AUTO_SEND and draft_record["mode"] == "llm":  # say why an LLM reply wasn't auto-sent
+        db.log(conn, request_id, "needs_person",
+               {"failed": [name for name, ok in checks if not ok]})
 
 
 def _route_after_error(conn: sqlite3.Connection, request_id: int, exc: Exception) -> None:
@@ -115,6 +129,9 @@ def get_request(conn: sqlite3.Connection, request_id: int) -> dict:
     if r:
         r["routing_reasons"] = json.loads(r["routing_reasons"] or "[]")
     out["review"] = r
+    reply = (r or {}).get("final_text") or (d["draft_text"] if d and d["mode"] != "none" else "")
+    out["email"] = (compose_email(request_id, out["customer"], out["subject"], reply, out["evidence"])
+                    if reply else None)
     out["audit"] = db.rows(conn, "SELECT * FROM audit_log WHERE request_id=? ORDER BY id",
                            (request_id,))
     for a in out["audit"]:

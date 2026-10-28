@@ -66,8 +66,42 @@ export function ConfidenceBadge({ classification }) {
 }
 
 export function StatusBadge({ status }) {
-  const tone = { pending: 'gray', approved: 'green', rejected: 'red', escalated: 'amber' }[status] || 'gray'
-  return <Badge tone={tone}>{status}</Badge>
+  const tone = { pending: 'gray', approved: 'green', rejected: 'red', escalated: 'amber', sent: 'green' }[status] || 'gray'
+  return <Badge tone={tone}>{status === 'sent' ? 'sent automatically' : status}</Badge>
+}
+
+// What happened after routing: sent automatically (with the checks it passed) or why a person is needed.
+export function AutoSendBox({ audit }) {
+  const sent = audit?.find((a) => a.event === 'auto_sent')
+  const held = audit?.find((a) => a.event === 'needs_person')
+  if (sent) return (
+    <div className="mt-3 rounded-xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3 shadow-sm">
+      <div className="mb-1 text-sm font-semibold text-emerald-900">Sent automatically: all {sent.details.checks.length} checks passed</div>
+      <ul className="grid gap-x-4 gap-y-0.5 text-xs text-emerald-900 sm:grid-cols-2">
+        {sent.details.checks.map((c) => <li key={c}>✓ {c}</li>)}
+      </ul>
+    </div>
+  )
+  if (held) return (
+    <div className="mt-3 rounded-xl bg-white/60 px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-200">
+      <div className="mb-1 font-semibold">Not sent automatically, because:</div>
+      <ul className="list-disc pl-5 text-xs">{held.details.failed.map((c) => <li key={c}>{c}</li>)}</ul>
+    </div>
+  )
+  return null
+}
+
+// The customer-facing email: no citation tags, greeting, help articles and signature.
+export function EmailPreview({ email }) {
+  if (!email) return <Empty>No email yet: there is no reply text.</Empty>
+  return (
+    <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
+      <div className="border-b border-slate-100 bg-slate-50/80 px-4 py-2 text-xs text-slate-600">
+        <div><span className="font-semibold text-slate-700">Subject:</span> {email.subject}</div>
+      </div>
+      <pre className="whitespace-pre-wrap px-4 py-3 font-sans text-sm leading-6 text-slate-800">{email.body}</pre>
+    </div>
+  )
 }
 
 export function Button({ variant = 'primary', className = '', ...props }) {

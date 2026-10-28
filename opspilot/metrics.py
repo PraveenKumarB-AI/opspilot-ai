@@ -14,7 +14,8 @@ def summary(conn: sqlite3.Connection) -> dict:
         "SELECT r.id, r.status, c.category, c.risk, v.queue, v.action, v.seconds_spent, d.mode "
         "FROM requests r LEFT JOIN classifications c ON c.request_id=r.id "
         "LEFT JOIN reviews v ON v.request_id=r.id LEFT JOIN drafts d ON d.request_id=r.id", conn)
-    reviewed = df[df["action"].notna()]
+    auto = df[df["action"] == "auto_send"]
+    reviewed = df[df["action"].notna() & (df["action"] != "auto_send")]  # decisions made by people
     drafted = reviewed[reviewed["mode"].isin(["llm", "fallback"])]
     # Only approve/edit are comparable to handling a request by hand; reject/escalate are not.
     timed = reviewed[reviewed["action"].isin(["approve", "edit"])]["seconds_spent"].dropna()
@@ -25,12 +26,14 @@ def summary(conn: sqlite3.Connection) -> dict:
               if ai_avg is not None and manual_avg else None)
     return {
         "total_requests": int(len(df)),
+        "auto_sent": int(len(auto)),
+        "auto_send_rate": round(float(len(auto) / len(df)), 3) if len(df) else 0.0,
         "pending": int((df["status"] == "pending").sum()),
         "reviewed": int(len(reviewed)),
         "priority_rate": round(float((df["queue"] == "priority").mean()), 3) if len(df) else 0.0,
         "by_category": df["category"].fillna("unknown").value_counts().to_dict(),
         "by_queue": df["queue"].fillna("unknown").value_counts().to_dict(),
-        "by_action": reviewed["action"].value_counts().to_dict(),
+        "by_action": df["action"].dropna().value_counts().to_dict(),
         "approved_unedited_rate": (round(float((drafted["action"] == "approve").mean()), 3)
                                    if len(drafted) else None),
         "edit_rate": (round(float((drafted["action"] == "edit").mean()), 3)

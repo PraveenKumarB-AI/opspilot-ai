@@ -38,8 +38,9 @@ export default function Dashboard() {
   return (
     <>
       <PageHeader title="Dashboard" subtitle="Live numbers from this app's database. All data is synthetic." />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <Stat label="Requests" value={m.total_requests} note={`${m.pending} waiting for review`} />
+        <Stat label="Auto-resolved" value={pct(m.auto_send_rate)} note={`${m.auto_sent} answered with no person`} />
         <Stat label="Priority review rate" value={pct(m.priority_rate)} note="Share routed by the safety rules" />
         <Stat label="Avg review time" value={m.avg_review_seconds == null ? '–' : `${m.avg_review_seconds}s`}
           note={m.manual_baseline_seconds == null ? 'No manual baseline yet: use Baseline timer' : `Manual baseline ${m.manual_baseline_seconds}s (${m.manual_samples} timed)`} />
@@ -61,8 +62,8 @@ export default function Dashboard() {
             </ResponsiveContainer>
           )}
         </Card>
-        <Card title="Reviewer decisions" tilt={false} action={<span className="text-xs text-slate-500">Approved unedited {pct(m.approved_unedited_rate)} · Edited {pct(m.edit_rate)}</span>}>
-          {m.reviewed === 0 ? <Empty>No reviews yet.</Empty> : (
+        <Card title="Decisions (people and automatic)" tilt={false} action={<span className="text-xs text-slate-500">Approved unedited {pct(m.approved_unedited_rate)} · Edited {pct(m.edit_rate)}</span>}>
+          {m.reviewed + m.auto_sent === 0 ? <Empty>No decisions yet.</Empty> : (
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={toRows(m.by_action)}>
                 <CartesianGrid vertical={false} stroke="#e2e8f0" />

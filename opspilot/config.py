@@ -38,6 +38,13 @@ CONFIDENCE_THRESHOLD = 0.85
 MIN_EVIDENCE_SCORE = {"sentence-transformers": 0.35, "tfidf": 0.20}
 TOP_K = 4
 
+# Auto-send: replies that pass every check go to the customer without a person. Stricter than
+# standard review on purpose. Turn off with OPSPILOT_AUTO_SEND=off (everything then needs a person).
+AUTO_SEND = os.getenv("OPSPILOT_AUTO_SEND", "on").lower() in {"on", "1", "true", "yes"}
+AUTO_SEND_MIN_CONFIDENCE = 0.90
+AUTO_SEND_MIN_EVIDENCE = 0.30
+NEVER_AUTO_SEND = {"billing", "data_privacy", "security", "tax", "general"}
+
 # Topics that are always high risk. Billing and privacy are high risk only when the request asks for
 # something risky (refund, deletion, ...), so routine questions like "update billing contact" are not.
 HIGH_RISK_CATEGORIES = {"security"}

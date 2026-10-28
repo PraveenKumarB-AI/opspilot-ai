@@ -1,7 +1,7 @@
 # OpsPilot AI
 
-An assistant for support teams that drafts answers to customer tickets from a knowledge base,
-while keeping a person in charge of every reply.
+An assistant for support teams that answers routine customer tickets automatically from a knowledge
+base, and hands everything risky or uncertain to a person, with the reasons.
 
 ![A vague question gets no draft and goes to priority review, with the reasons shown](docs/images/new-request.png)
 
@@ -37,9 +37,15 @@ prototype, not business results.
 4. **Route.** Seven rules choose between standard and priority review: possible prompt injection,
    high-risk request, low confidence (below 0.85), weak evidence, failed citation check, urgency,
    and an upset customer. The reviewer sees which rules fired.
-5. **Review.** A person approves, edits, rejects or escalates. If the citation check failed, Approve
-   stays locked until the reviewer confirms they checked the sources.
-6. **Log.** Every step goes into an append-only audit table. SQLite triggers reject updates and deletes.
+5. **Auto-send or review.** A reply goes out with no person only if it passes nine checks: every
+   review rule clear, low risk, no prompt injection, confidence at least 0.90, a strong source match,
+   an LLM-written reply that passed the citation check, and a topic that isn't billing, data privacy,
+   security, tax or general. Everything else waits for a person, who approves, edits, rejects or
+   escalates. If the citation check failed, Approve stays locked until the reviewer confirms they
+   checked the sources.
+6. **Email.** The customer gets a professional email: greeting, the answer without source tags, the
+   help articles it used, and a PraveenPlan Customer Support signature with the ticket number.
+7. **Log.** Every step goes into an append-only audit table. SQLite triggers reject updates and deletes.
 
 If any step throws an error, the ticket is not lost: it is logged and sent to priority review.
 

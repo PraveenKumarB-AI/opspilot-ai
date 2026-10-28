@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import PageHeader from '../components/PageHeader'
-import { Badge, Button, Card, DraftText, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, RiskBadge, inputClass, ConfidenceBadge } from '../components/ui'
+import { AutoSendBox, Badge, Button, Card, ConfidenceBadge, DraftText, EmailPreview, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, RiskBadge, StatusBadge, inputClass } from '../components/ui'
 
 export default function Intake() {
   const [samples, setSamples] = useState([])
@@ -30,7 +30,7 @@ export default function Intake() {
   const c = result?.classification
   return (
     <>
-      <PageHeader title="New request" subtitle="Paste a customer request. OpsPilot classifies it, finds sources, drafts a cited reply and routes it for review." />
+      <PageHeader title="New request" subtitle="Paste a customer request. OpsPilot classifies it, finds sources and drafts a cited reply. Safe, routine cases are answered automatically; everything else goes to a person." />
       <div className="grid gap-6 lg:grid-cols-5">
         <Card title="Customer request" className="lg:col-span-2">
           <form onSubmit={submit} className="space-y-4">
@@ -63,7 +63,7 @@ export default function Intake() {
             <Card><Empty>The classification, sources and draft will appear here.</Empty></Card>
           ) : (
             <>
-              <Card title={`Request #${result.id}`} action={<QueueBadge queue={result.review.queue} />}>
+              <Card title={`Request #${result.id}`} action={result.status === 'sent' ? <StatusBadge status="sent" /> : <QueueBadge queue={result.review.queue} />}>
                 <div className="mb-4 flex flex-wrap gap-2">
                   <Badge>Category: {c.category}</Badge>
                   <Badge>Urgency: {c.urgency}</Badge>
@@ -72,8 +72,9 @@ export default function Intake() {
                   <Badge>{c.mode === 'llm' ? 'Classified by the LLM' : 'Fallback classifier'}</Badge>
                 </div>
                 <Reasons reasons={result.review.routing_reasons} />
+                <AutoSendBox audit={result.audit} />
                 <div className="mt-4 flex justify-end">
-                  <Button variant="secondary" onClick={() => navigate(`/queue/${result.id}`)}>Open in review queue →</Button>
+                  <Button variant="secondary" onClick={() => navigate(`/queue/${result.id}`)}>{result.status === 'sent' ? 'View in queue →' : 'Open in review queue →'}</Button>
                 </div>
               </Card>
               <Card title="Draft reply" action={result.draft.mode !== 'none' && (
@@ -82,6 +83,11 @@ export default function Intake() {
                   ? <Empty>{result.draft.draft_text}</Empty>
                   : <DraftText text={result.draft.draft_text} />}
               </Card>
+              {result.email && (
+                <Card title={result.status === 'sent' ? 'Email sent to the customer' : 'Email preview (sent after a person approves)'}>
+                  <EmailPreview email={result.email} />
+                </Card>
+              )}
               <Card title="Sources found"><Evidence items={result.evidence} /></Card>
             </>
           )}
