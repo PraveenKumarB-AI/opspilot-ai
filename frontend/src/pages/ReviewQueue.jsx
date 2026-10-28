@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../api'
+import Journey from '../components/Journey'
 import PageHeader from '../components/PageHeader'
-import { AutoSendBox, Badge, Button, Card, ConfidenceBadge, EmailPreview, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, RiskBadge, StatusBadge, inputClass } from '../components/ui'
+import { AutoSendBox, Badge, Button, Card, EmailPreview, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, StatusBadge, inputClass } from '../components/ui'
 
 function readName() { try { return localStorage.getItem('reviewer') || '' } catch { return '' } }
 function saveName(v) { try { localStorage.setItem('reviewer', v) } catch { /* storage unavailable */ } }
@@ -72,7 +73,7 @@ export default function ReviewQueue() {
   return (
     <>
       <PageHeader title="Review queue" subtitle="Cases that need a person, priority first with the reason shown. Safe, routine replies are sent automatically: see Auto-sent." />
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-3">
         <Card title="Requests" tilt={false} action={
           <div className="flex rounded-lg bg-slate-100 p-0.5 text-xs">
             {[['pending', 'Pending'], ['sent', 'Auto-sent'], ['all', 'All']].map(([f, label]) => (
@@ -105,15 +106,11 @@ export default function ReviewQueue() {
           <ErrorBox error={error} />
           {!item ? <Card><Empty>Select a request to review it.</Empty></Card> : (
             <>
-              <Card title={`#${item.id} · ${item.subject}`} action={<div className="flex gap-2"><QueueBadge queue={item.review.queue} /><StatusBadge status={item.status} /></div>}>
+              <Card tilt={false} title={`#${item.id}: ${item.subject}`} action={<div className="flex gap-2"><QueueBadge queue={item.review.queue} /><StatusBadge status={item.status} /></div>}>
                 <div className="mb-3 text-xs text-slate-500">From {item.customer} · {new Date(item.received_at).toLocaleString()}</div>
                 <p className="mb-4 whitespace-pre-wrap rounded-lg bg-white/60 p-3 text-sm">{item.body}</p>
-                <div className="mb-4 flex flex-wrap gap-2">
-                  <Badge>Category: {item.classification.category}</Badge>
-                  <RiskBadge risk={item.classification.risk} />
-                  <ConfidenceBadge classification={item.classification} />
-                </div>
-                <Reasons reasons={item.review.routing_reasons} />
+                <div className="mb-5"><Journey request={item} /></div>
+                {item.status !== 'sent' && <Reasons reasons={item.review.routing_reasons} />}
                 <AutoSendBox audit={item.audit} />
               </Card>
 
@@ -161,7 +158,7 @@ export default function ReviewQueue() {
               </Card>
               {item.email && (
                 <Card title={done === 'auto_send' ? 'Email sent to the customer' : done ? 'Email the customer received' : 'Email preview (from the draft; your edits apply when you approve)'}>
-                  <EmailPreview email={item.email} />
+                  <EmailPreview email={item.email} to={item.customer} />
                 </Card>
               )}
             </>

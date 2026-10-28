@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Instrument Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Page background: a soft mesh of glowing colour behind everything. */
@@ -87,3 +87,49 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .tilt, .btn-shine, .btn-shine::after { transition: none; transform: none !important; }
 }
+
+/* ---------- Ticket journey rail ---------- */
+.journey {
+  position: relative;
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 640px) {
+  .journey { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.5rem; }
+  /* the track that links the stations */
+  .journey::before {
+    content: "";
+    position: absolute;
+    left: 0.6rem; right: 0.6rem; top: 0.55rem;
+    height: 3px; border-radius: 3px;
+    background: linear-gradient(90deg, #c7d2fe, #a5b4fc 70%, #e2e8f0);
+  }
+}
+.station {
+  position: relative;
+  min-width: 0;
+  display: flex; gap: 0.6rem; align-items: flex-start;
+  animation: station-in 420ms cubic-bezier(.2,.8,.2,1) both;
+  animation-delay: calc(var(--i) * 110ms);
+}
+@media (min-width: 640px) { .station { flex-direction: column; gap: 0.5rem; } }
+.dot {
+  position: relative; z-index: 1;
+  width: 1.15rem; height: 1.15rem; flex-shrink: 0; border-radius: 9999px;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1px rgb(15 23 42 / 0.08), 0 2px 6px rgb(15 23 42 / 0.15);
+}
+.dot-ok   { background: #6366f1; }
+.dot-warn { background: #f59e0b; box-shadow: 0 0 0 1px rgb(15 23 42 / .08), 0 0 12px 2px rgb(245 158 11 / .55); }
+.dot-stop { background: #e11d48; box-shadow: 0 0 0 1px rgb(15 23 42 / .08), 0 0 12px 2px rgb(225 29 72 / .45); }
+.dot-sent { background: #0d9488; box-shadow: 0 0 0 1px rgb(15 23 42 / .08), 0 0 14px 3px rgb(13 148 136 / .55); }
+.dot-wait { background: #f59e0b; box-shadow: 0 0 0 1px rgb(15 23 42 / .08), 0 0 14px 3px rgb(245 158 11 / .55); }
+.dot-idle { background: #e2e8f0; }
+/* The outcome is the answer to "what happened?", so it gets the biggest marker. */
+.station-end .dot { width: 1.5rem; height: 1.5rem; margin-top: -0.17rem; }
+@keyframes station-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .station { animation: none; } }

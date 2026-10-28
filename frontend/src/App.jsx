@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
+import { NavLink, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { api } from './api'
 import Intake from './pages/Intake'
 import ReviewQueue from './pages/ReviewQueue'
@@ -8,8 +8,8 @@ import Audit from './pages/Audit'
 import Baseline from './pages/Baseline'
 
 const NAV = [
-  { to: '/intake', label: 'New request', hint: 'Submit and triage' },
-  { to: '/queue', label: 'Review queue', hint: 'Approve or escalate' },
+  { to: '/intake', label: 'New request', hint: 'Process a ticket' },
+  { to: '/queue', label: 'Review queue', hint: 'Cases that need a person', count: 'pending' },
   { to: '/dashboard', label: 'Dashboard', hint: 'Time and quality' },
   { to: '/baseline', label: 'Baseline timer', hint: 'Measure manual work' },
   { to: '/audit', label: 'Audit trail', hint: 'Every step logged' },
@@ -17,7 +17,16 @@ const NAV = [
 
 export default function App() {
   const [health, setHealth] = useState(null)
+  const [counts, setCounts] = useState(null)
+  const location = useLocation()
   useEffect(() => { api.health().then(setHealth).catch(() => setHealth({ status: 'down' })) }, [])
+  // Refresh the live counts whenever the page changes, so the sidebar matches what was just done.
+  useEffect(() => { api.metrics().then(setCounts).catch(() => {}) }, [location.pathname])
+  useEffect(() => {
+    const refresh = () => api.metrics().then(setCounts).catch(() => {})
+    window.addEventListener('opspilot:changed', refresh)
+    return () => window.removeEventListener('opspilot:changed', refresh)
+  }, [])
 
   return (
     <div className="flex min-h-screen">
@@ -35,12 +44,29 @@ export default function App() {
           {NAV.map((n) => (
             <NavLink key={n.to} to={n.to}
               className={({ isActive }) => `block rounded-xl px-3 py-2 transition ${isActive ? 'bg-gradient-to-r from-indigo-500/90 to-violet-500/80 text-white shadow-lg shadow-indigo-900/40 ring-1 ring-white/20' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
-              <div className="text-sm font-medium">{n.label}</div>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-medium">{n.label}</span>
+                {n.count && counts?.[n.count] > 0 && (
+                  <span className="rounded-full bg-amber-400 px-2 py-0.5 text-[11px] font-bold text-amber-950 shadow" aria-label={`${counts[n.count]} waiting`}>{counts[n.count]}</span>
+                )}
+              </div>
               <div className="text-xs opacity-70">{n.hint}</div>
             </NavLink>
           ))}
         </nav>
-        <div className="m-3 rounded-xl bg-white/5 p-3 text-xs text-slate-300 ring-1 ring-white/10">
+        {counts && (
+          <div className="mx-3 mb-2 grid grid-cols-2 gap-2 text-center">
+            <div className="rounded-xl bg-teal-400/10 px-2 py-2 ring-1 ring-teal-300/20">
+              <div className="text-xl font-semibold text-teal-200">{counts.auto_sent}</div>
+              <div className="text-[11px] text-teal-100/80">emailed automatically</div>
+            </div>
+            <div className="rounded-xl bg-amber-400/10 px-2 py-2 ring-1 ring-amber-300/20">
+              <div className="text-xl font-semibold text-amber-200">{counts.pending}</div>
+              <div className="text-[11px] text-amber-100/80">waiting for a person</div>
+            </div>
+          </div>
+        )}
+        <div className="m-3 mt-1 rounded-xl bg-white/5 p-3 text-xs text-slate-300 ring-1 ring-white/10">
           <div className="font-medium text-white">System</div>
           {health?.status === 'ok' ? (
             <>

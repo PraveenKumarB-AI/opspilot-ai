@@ -18,6 +18,8 @@ async function request(path, options = {}) {
     }
     throw new Error(body.detail || `Request failed (${res.status})`)
   }
+  // Tell the rest of the app (e.g. the sidebar counts) that data changed after any write.
+  if (options.method && options.method !== 'GET') window.dispatchEvent(new Event('opspilot:changed'))
   return res.json()
 }
 

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
+import Journey from '../components/Journey'
 import PageHeader from '../components/PageHeader'
-import { AutoSendBox, Badge, Button, Card, ConfidenceBadge, DraftText, EmailPreview, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, RiskBadge, StatusBadge, inputClass } from '../components/ui'
+import { AutoSendBox, Badge, Button, Card, DraftText, EmailPreview, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, StatusBadge, inputClass } from '../components/ui'
 
 export default function Intake() {
   const [samples, setSamples] = useState([])
@@ -27,7 +28,6 @@ export default function Intake() {
     finally { setBusy(false) }
   }
 
-  const c = result?.classification
   return (
     <>
       <PageHeader title="New request" subtitle="Paste a customer request. OpsPilot classifies it, finds sources and drafts a cited reply. Safe, routine cases are answered automatically; everything else goes to a person." />
@@ -60,18 +60,16 @@ export default function Intake() {
 
         <div className="space-y-6 lg:col-span-3" aria-live="polite">
           {!result ? (
-            <Card><Empty>The classification, sources and draft will appear here.</Empty></Card>
+            <Card title="Ticket journey" tilt={false}>
+              <Journey />
+              <p className="mt-5 text-sm text-slate-600">Load an example or paste a request, then process it. You'll see each stage it passes through, and whether it was emailed automatically or handed to a person.</p>
+            </Card>
           ) : (
             <>
-              <Card title={`Request #${result.id}`} action={result.status === 'sent' ? <StatusBadge status="sent" /> : <QueueBadge queue={result.review.queue} />}>
-                <div className="mb-4 flex flex-wrap gap-2">
-                  <Badge>Category: {c.category}</Badge>
-                  <Badge>Urgency: {c.urgency}</Badge>
-                  <RiskBadge risk={c.risk} />
-                  <ConfidenceBadge classification={c} />
-                  <Badge>{c.mode === 'llm' ? 'Classified by the LLM' : 'Fallback classifier'}</Badge>
-                </div>
-                <Reasons reasons={result.review.routing_reasons} />
+              <Card tilt={false} title={`Request #${result.id}: ${result.subject}`} action={result.status === 'sent' ? <StatusBadge status="sent" /> : <QueueBadge queue={result.review.queue} />}>
+                <Journey request={result} />
+                <div className="mt-5" />
+                {result.status !== 'sent' && <Reasons reasons={result.review.routing_reasons} />}
                 <AutoSendBox audit={result.audit} />
                 <div className="mt-4 flex justify-end">
                   <Button variant="secondary" onClick={() => navigate(`/queue/${result.id}`)}>{result.status === 'sent' ? 'View in queue →' : 'Open in review queue →'}</Button>
@@ -85,7 +83,7 @@ export default function Intake() {
               </Card>
               {result.email && (
                 <Card title={result.status === 'sent' ? 'Email sent to the customer' : 'Email preview (sent after a person approves)'}>
-                  <EmailPreview email={result.email} />
+                  <EmailPreview email={result.email} to={result.customer} />
                 </Card>
               )}
               <Card title="Sources found"><Evidence items={result.evidence} /></Card>

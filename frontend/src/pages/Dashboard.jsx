@@ -7,7 +7,7 @@ import { Badge, Card, Empty, ErrorBox } from '../components/ui'
 function Stat({ label, value, note }) {
   return (
     <div className="glass tilt rounded-2xl p-5">
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="text-sm font-medium text-slate-600">{label}</div>
       <div className="mt-2 text-3xl font-semibold tabular-nums">{value}</div>
       {note && <div className="mt-1 text-xs text-slate-500">{note}</div>}
     </div>

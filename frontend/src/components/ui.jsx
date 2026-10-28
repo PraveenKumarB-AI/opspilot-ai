@@ -1,4 +1,4 @@
-// Small shared building blocks so every page looks consistent.
+// Small shared building blocks so every page looks consistent (glass + 3D style).
 
 import { useRef } from 'react'
 
@@ -19,7 +19,7 @@ export function Card({ title, action, children, className = '', tilt = true }) {
   }
   return (
     <section ref={ref} onMouseMove={move} onMouseLeave={leave}
-      className={`glass rounded-2xl ${tilt ? 'tilt' : ''} ${className}`}>
+      className={`glass min-w-0 rounded-2xl ${tilt ? 'tilt' : ''} ${className}`}>
       {title && (
         <header className="flex items-center justify-between border-b border-white/70 px-5 py-3">
           <h2 className="text-sm font-semibold tracking-tight text-slate-800">{title}</h2>
@@ -91,15 +91,22 @@ export function AutoSendBox({ audit }) {
   return null
 }
 
-// The customer-facing email: no citation tags, greeting, help articles and signature.
-export function EmailPreview({ email }) {
+// The customer-facing email, shown the way it arrives in an inbox: no citation tags, one greeting,
+// the help articles used, and the support signature.
+export function EmailPreview({ email, to }) {
   if (!email) return <Empty>No email yet: there is no reply text.</Empty>
   return (
     <div className="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-slate-200">
-      <div className="border-b border-slate-100 bg-slate-50/80 px-4 py-2 text-xs text-slate-600">
-        <div><span className="font-semibold text-slate-700">Subject:</span> {email.subject}</div>
+      <div className="flex items-start gap-3 border-b border-slate-100 px-4 py-3">
+        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white shadow">PP</div>
+        <div className="min-w-0 text-sm">
+          <div className="font-semibold text-slate-900">{email.subject}</div>
+          <div className="truncate text-xs text-slate-500">
+            PraveenPlan Customer Support &lt;support@praveenplan.example&gt; to {to || 'customer'}
+          </div>
+        </div>
       </div>
-      <pre className="whitespace-pre-wrap px-4 py-3 font-sans text-sm leading-6 text-slate-800">{email.body}</pre>
+      <div className="whitespace-pre-wrap px-4 py-4 text-[15px] leading-7 text-slate-800">{email.body}</div>
     </div>
   )
 }

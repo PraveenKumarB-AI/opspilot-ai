@@ -33,7 +33,7 @@ export default function Baseline() {
   return (
     <>
       <PageHeader title="Baseline timer" subtitle="Measure how long a request takes by hand, before using the assistant. These timings feed the time-saved figure on the dashboard." />
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-3">
         <Card title="How to measure" className="lg:col-span-1">
           <ol className="list-decimal space-y-2 pl-5 text-sm text-slate-700">
             <li>Pick a request you have not seen before.</li>
