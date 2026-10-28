@@ -1,0 +1,92 @@
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { api } from '../api'
+import PageHeader from '../components/PageHeader'
+import { Badge, Button, Card, DraftText, Empty, ErrorBox, Evidence, Field, QueueBadge, Reasons, RiskBadge, inputClass, ConfidenceBadge } from '../components/ui'
+
+export default function Intake() {
+  const [samples, setSamples] = useState([])
+  const [form, setForm] = useState({ customer: 'Demo customer', subject: '', body: '' })
+  const [result, setResult] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const navigate = useNavigate()
+
+  useEffect(() => { api.samples().then(setSamples).catch((e) => setError(`Examples could not load. ${e.message}`)) }, [])
+
+  const pickSample = (id) => {
+    const s = samples.find((x) => x.id === id)
+    if (s) setForm({ ...form, subject: s.subject, body: s.body })
+  }
+
+  const submit = async (e) => {
+    e.preventDefault()
+    setBusy(true); setError(''); setResult(null)
+    try { setResult(await api.createRequest(form)) }
+    catch (err) { setError(err.message) }
+    finally { setBusy(false) }
+  }
+
+  const c = result?.classification
+  return (
+    <>
+      <PageHeader title="New request" subtitle="Paste a customer request. OpsPilot classifies it, finds sources, drafts a cited reply and routes it for review." />
+      <div className="grid gap-6 lg:grid-cols-5">
+        <Card title="Customer request" className="lg:col-span-2">
+          <form onSubmit={submit} className="space-y-4">
+            <Field label="Load a synthetic example" hint="52 invented requests: normal, ambiguous, unsupported, high-risk and adversarial.">
+              <select className={inputClass} defaultValue="" onChange={(e) => pickSample(e.target.value)}>
+                <option value="" disabled>Choose an example…</option>
+                {['normal', 'ambiguous', 'unsupported', 'high_risk', 'adversarial'].map((t) => (
+                  <optgroup key={t} label={t.replace('_', ' ')}>
+                    {samples.filter((s) => s.type === t).map((s) => <option key={s.id} value={s.id}>{s.id} · {s.subject}</option>)}
+                  </optgroup>
+                ))}
+              </select>
+            </Field>
+            <Field label="Customer">
+              <input className={inputClass} value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })} />
+            </Field>
+            <Field label="Subject">
+              <input className={inputClass} required value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
+            </Field>
+            <Field label="Message">
+              <textarea className={inputClass} required rows={6} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
+            </Field>
+            <ErrorBox error={error} />
+            <Button type="submit" disabled={busy} className="w-full">{busy ? 'Processing…' : 'Process request'}</Button>
+          </form>
+        </Card>
+
+        <div className="space-y-6 lg:col-span-3" aria-live="polite">
+          {!result ? (
+            <Card><Empty>The classification, sources and draft will appear here.</Empty></Card>
+          ) : (
+            <>
+              <Card title={`Request #${result.id}`} action={<QueueBadge queue={result.review.queue} />}>
+                <div className="mb-4 flex flex-wrap gap-2">
+                  <Badge>Category: {c.category}</Badge>
+                  <Badge>Urgency: {c.urgency}</Badge>
+                  <RiskBadge risk={c.risk} />
+                  <ConfidenceBadge classification={c} />
+                  <Badge>{c.mode === 'llm' ? 'Classified by Claude' : 'Fallback classifier'}</Badge>
+                </div>
+                <Reasons reasons={result.review.routing_reasons} />
+                <div className="mt-4 flex justify-end">
+                  <Button variant="secondary" onClick={() => navigate(`/queue/${result.id}`)}>Open in review queue →</Button>
+                </div>
+              </Card>
+              <Card title="Draft reply" action={result.draft.mode !== 'none' && (
+                <Badge tone={result.draft.citation_ok ? 'green' : 'red'}>{result.draft.citation_ok ? 'Citations verified' : 'Citation check failed'}</Badge>)}>
+                {result.draft.mode === 'none'
+                  ? <Empty>{result.draft.draft_text}</Empty>
+                  : <DraftText text={result.draft.draft_text} />}
+              </Card>
+              <Card title="Sources found"><Evidence items={result.evidence} /></Card>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}

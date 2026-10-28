@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import sqlite3
 
-from opspilot import db
+from opspilot import config, db
 from opspilot.classifier import classify
 from opspilot.drafter import NO_DRAFT, draft_response
 from opspilot.guardrails import check_draft, detect_injection
@@ -100,6 +100,10 @@ def get_request(conn: sqlite3.Connection, request_id: int) -> dict:
     out = req[0]
     out["classification"] = (db.rows(conn, "SELECT * FROM classifications WHERE request_id=?",
                                      (request_id,)) or [None])[0]
+    if out["classification"]:
+        # The UI shows this flag instead of repeating the threshold, so the two can't disagree.
+        out["classification"]["low_confidence"] = (
+            out["classification"]["confidence"] < config.CONFIDENCE_THRESHOLD)
     out["evidence"] = db.rows(conn, "SELECT * FROM retrievals WHERE request_id=? ORDER BY rank",
                               (request_id,))
     d = (db.rows(conn, "SELECT * FROM drafts WHERE request_id=?", (request_id,)) or [None])[0]

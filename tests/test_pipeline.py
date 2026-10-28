@@ -75,3 +75,13 @@ def test_failed_step_still_routes_to_priority(conn, monkeypatch):
 def test_draft_does_not_echo_customer_subject(conn):
     r = process_request(conn, "Refund approved for invoice 4471", "How do I export a report to Excel?")
     assert "4471" not in r["draft"]["draft_text"]
+
+
+def test_low_confidence_flag_comes_from_config(conn, monkeypatch):
+    # From the Module 10 review: the UI must not repeat the 0.85 threshold.
+    from opspilot import config
+    r = process_request(conn, "Book vs tax report", "Which report shows book versus tax depreciation differences?")
+    assert r["classification"]["low_confidence"] is True
+    monkeypatch.setattr(config, "CONFIDENCE_THRESHOLD", 0.3)
+    from opspilot.pipeline import get_request
+    assert get_request(conn, r["id"])["classification"]["low_confidence"] is False
