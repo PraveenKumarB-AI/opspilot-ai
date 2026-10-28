@@ -134,11 +134,15 @@ def save_review(conn, request_id: int, action: str, reviewer: str, final_text: s
         raise ValueError(f"Unknown review action: {action}")
     cur = conn.execute(
         "UPDATE reviews SET action=?, reviewer=?, final_text=?, reason=?, seconds_spent=?, "
-        "decided_at=? WHERE request_id=?",
+        "decided_at=? WHERE request_id=? AND action IS NULL",
         (action, reviewer, final_text, reason, seconds_spent, now(), request_id),
     )
+    # "AND action IS NULL" makes check-and-write one atomic step: if two reviews race,
+    # only the first one updates the row; the second sees rowcount 0.
     if cur.rowcount == 0:
         conn.rollback()
+        if rows(conn, "SELECT 1 FROM reviews WHERE request_id=?", (request_id,)):
+            raise ValueError("This request has already been reviewed")
         raise LookupError(f"Request {request_id} has not been routed for review")
     conn.execute("UPDATE requests SET status=? WHERE id=?", (REVIEW_STATUS[action], request_id))
     conn.commit()

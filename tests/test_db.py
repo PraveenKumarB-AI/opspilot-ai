@@ -58,3 +58,13 @@ def test_save_review_requires_routing(conn):
     with pytest.raises(LookupError):
         db.save_review(conn, rid, "approve", "Praveen", "text", "", 10)
     assert db.rows(conn, "SELECT status FROM requests WHERE id=?", (rid,))[0]["status"] == "pending"
+
+
+def test_second_review_cannot_overwrite_first(conn):
+    # From the Module 8 review: check-then-write allowed a race; the write itself must refuse.
+    rid = db.insert_request(conn, "Acme", "web", "Hello", "Body")
+    db.save_routing(conn, rid, "standard", [])
+    db.save_review(conn, rid, "approve", "Ana", "First", "", 10)
+    with pytest.raises(ValueError):
+        db.save_review(conn, rid, "reject", "Ben", "", "late click", 5)
+    assert db.rows(conn, "SELECT reviewer FROM reviews")[0]["reviewer"] == "Ana"
