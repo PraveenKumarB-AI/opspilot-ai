@@ -123,14 +123,15 @@ export function DraftText({ text }) {
   )
 }
 
-export function Evidence({ items }) {
+export function Evidence({ items, cited = [] }) {
   if (!items?.length) return <Empty>No sources retrieved.</Empty>
+  const used = new Set(cited)
   return (
     <ul className="space-y-3">
       {items.map((e) => (
-        <li key={e.chunk_id} className="rounded-xl border border-white/80 bg-white/60 p-3 shadow-sm">
+        <li key={e.chunk_id} className={`rounded-xl border p-3 shadow-sm ${used.has(e.chunk_id) ? 'border-indigo-300 bg-indigo-50/70 ring-1 ring-indigo-200' : 'border-white/80 bg-white/60'}`}>
           <div className="mb-1 flex items-center justify-between gap-2">
-            <span className="font-mono text-xs font-semibold text-indigo-700">{e.chunk_id}</span>
+            <span className="font-mono text-xs font-semibold text-indigo-700">{e.chunk_id}{used.has(e.chunk_id) && <span className="ml-2 rounded bg-indigo-600 px-1.5 py-0.5 font-sans text-[10px] font-semibold text-white">cited in draft</span>}</span>
             <span className="text-xs text-slate-500">match {e.score.toFixed(2)}</span>
           </div>
           <div className="text-xs font-medium text-slate-700">{e.title}</div>
